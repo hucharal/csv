@@ -5,10 +5,12 @@ class CSV
 {
     protected $source;
     protected $handle;
+    protected $header;
     protected $headerRowExists = true;
     protected $delimiter = ',';
     protected $enclosure = '"';
     protected $withSeparator = false;
+    protected $ignored = [];
 
     public function setDelimiter($delimiter)
     {
@@ -33,6 +35,8 @@ class CSV
 
     public function with($source, $headerRowExists = true, $mode = 'r+')
     {
+        $this->ignored = [];
+
         if (is_array($source)) { // fromArray
             $this->source = $source;
         } else {
@@ -73,13 +77,16 @@ class CSV
         $from = fopen($filePath, $mode);
         $arr = array();
         $this->headerRowExists = $headerRowExists;
+        $this->ignored = [];
 
         if ($headerRowExists) {
             // first header row
-            $header = fgetcsv($from, 0, $this->delimiter, $this->enclosure);
+            $this->header = fgetcsv($from, 0, $this->delimiter, $this->enclosure);
         }
         while (($data = fgetcsv($from, 0, $this->delimiter, $this->enclosure)) !== false) {
-            $arr[] = $headerRowExists ? array_combine($header, $data) : $data;
+            try {
+                $arr[] = $this->getData($data);
+            } catch (\Exception $e) {}
         }
 
         fclose($from);
@@ -112,6 +119,28 @@ class CSV
         exit;
     }
 
+    public function getIgnored()
+    {
+        return $this->ignored;
+    }
+
+    /**
+     * Get data read from a line
+     * @param array $data
+     * @return array
+     */
+    private function getData($data)
+    {
+        if ($this->headerRowExists) {
+            if (count($this->header) != count($data)) {
+                $this->ignored[] = $data;
+                throw new \Exception();
+            }
+            return array_combine($this->header, $data);
+        }
+
+        return $data;
+    }
 
     /**
      * Use PHP's inbuilt fputcsv to generate csv
