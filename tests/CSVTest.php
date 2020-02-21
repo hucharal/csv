@@ -121,6 +121,7 @@ EOL;
         $arr = array(array_fill(0, 2000, 'row'));
         $this->assertEquals($data, $arr);
     }
+
     public function testPutCreatesFile()
     {
         $obj = new CSV();
@@ -134,5 +135,24 @@ EOL;
 
         $this->assertFileExists('tests'.DIRECTORY_SEPARATOR.'putTest.csv');
         unlink('tests'.DIRECTORY_SEPARATOR.'putTest.csv');
+    }
+
+    /**
+     * @depends testPutCreatesFile
+     */
+    public function testLinesAreIgnored()
+    {
+        $arr = array(
+            array('name1', 'address1'),
+            array('name2', 'address2'),
+            array('name2', 'address2', 'score'),
+        );
+
+        $sut = new CSV();
+        $sut->setHeaderRowExists(false)
+            ->with($arr)
+            ->put('tests'.DIRECTORY_SEPARATOR.'withError.csv');
+
+        $this->assertTrue(true);
     }
 }
